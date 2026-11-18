@@ -47,6 +47,20 @@ IMPRIMIR / PDF
 Horario, licencias, lista de alumnos, notas, libro de temas y asistencia: se abre la hoja adentro de la app >
 "Imprimir / PDF" > en "Impresora" elegir "Guardar como PDF". Después se puede mandar por WhatsApp.
 
+NOVEDADES 18/11/2026 (versión doc-1.2.0)
+- OBSERVACIONES DE LOS ALUMNOS (conducta, algo bueno, tarea, otra) con "Hablar con los padres" que queda pendiente en Hoy
+  hasta "Ya hablé", y ACTA DE CONDUCTA para completar, guardar e imprimir (el modelo de la escuela). Igual que en la PC.
+
+NOVEDADES 18/11/2026 (versión doc-1.1.0)
+- APARIENCIA (Configuración > Apariencia): cada docente elige el color (Verde agua, Lila, Azul, Rosa, Coral, Grafito),
+  el tipo de letra (Clásica, Redondeada, Elegante) y el tamaño (Normal, Grande, Muy grande). Se cambia al instante y queda
+  en ese celular. "Volver a como venía" la deja como de fábrica. Las impresiones salen siempre igual.
+- GASTOS (menú > Gastos): anota lo que gasta, con categoría, detalle, fecha y cómo pagó. Muestra el total del mes y la
+  diferencia con el mes anterior, el total del año, en qué gastó (por categoría), por medio de pago, la lista del mes por día
+  y un gráfico mes a mes. Arranca con categorías de docente (fotocopias, materiales, viajes, cursos, libros, celular, otros);
+  ella agrega las suyas (súper, servicios, salud…) con su dibujito. Botón Excel. Los gastos van en la copia de seguridad.
+  OJO: el programa de la PC no tiene Gastos: si pasa los datos a la PC, los gastos quedan guardados pero no se ven ahí.
+
 DIFERENCIAS CON LA PC
 - No hay usuarios ni contraseña (el celular es personal). Conviene usarlo con bloqueo de pantalla.
 - No hace falta WiFi ni la compu prendida.

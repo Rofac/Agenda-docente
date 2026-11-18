@@ -69,6 +69,10 @@ P.principal = async (main) => {
     `<div class="cols2"><div>${bloqueDia(d.hoy, 'Hoy')}${bloqueDia(d.manana, 'Mañana')}</div><div>
       ${d.proximo_feriado ? `<div class="card fer-prox">${ico('bandera')} <div><small>Próximo feriado${d.proximo_feriado.dias === 1 ? ': mañana' : ` en ${d.proximo_feriado.dias} días`}</small>
         <b>${fechaLarga(d.proximo_feriado.fecha)}</b><div class="muted chico">${esc(d.proximo_feriado.nombre)}</div></div></div>` : ''}
+      ${d.padres && d.padres.length ? `<div class="card padres-card"><h3>${ico('users')} Hablar con los padres</h3>${d.padres.map(p => `<div class="ev" data-obsal="${p.alumno_id}">
+        <span class="pto" style="background:var(--naranja)"></span><div style="flex:1;min-width:0"><b>${esc(p.apellido)} ${esc(p.nombre || '')}</b> <span class="muted chico">${esc(p.curso)} · ${esc(p.escuela)}</span>
+        <div class="chico">${dm(p.fecha)} · ${esc(p.texto.length > 90 ? p.texto.slice(0, 90) + '…' : p.texto)}</div></div>
+        <button type="button" class="btn chico verde" data-yahable="${p.id}">${ico('check')} Ya hablé</button></div>`).join('')}</div>` : ''}
       <div class="card"><h3>${ico('cal')} Próximas tres semanas</h3>${d.proximos.length ? d.proximos.map(e => filaEvento(e, true)).join('') : '<div class="muted">Nada anotado.</div>'}</div>
       ${d.riesgo.length ? `<div class="card"><h3>${ico('alerta')} Alumnos con muchas inasistencias</h3><table class="t comp"><tbody>${d.riesgo.map(r => `<tr data-curso="${r.curso_id}" style="cursor:pointer">
         <td><b>${esc(r.alumno)}</b><div class="muted chico">${esc(r.curso)} · ${esc(r.escuela)}</div></td><td class="r"><span class="pill ${r.libre ? 'rojo' : 'naranja'}">${num(r.porcentaje)}%</span>
@@ -78,6 +82,8 @@ P.principal = async (main) => {
     </div></div>`;
   $('#hEv').onclick = () => editarEvento({ fecha: hoy() }, () => ir('principal'));
   main.onclick = e => {
+    const yh = e.target.closest('[data-yahable]'); if (yh) return marcarHablado(d.padres.find(p => p.id === +yh.dataset.yahable), () => ir('principal'));
+    const ob = e.target.closest('[data-obsal]'); if (ob) return verObservaciones(+ob.dataset.obsal, () => ir('principal'));
     const a = e.target.closest('[data-asis]'); if (a) { CURSO_TAB = 'asistencia'; CURSO_FECHA = hoy(); return ir('curso', a.dataset.asis); }
     const k = e.target.closest('[data-ir]'); if (k) return ir(k.dataset.ir);
     const c = e.target.closest('[data-curso]'); if (c) { CURSO_TAB = 'alumnos'; return ir('curso', c.dataset.curso); }

@@ -170,6 +170,7 @@ const ICONS = {
   ayuda: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/>',
   salir: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>',
   luna: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  paleta: '<path d="M12 22a10 10 0 1 1 10-10c0 2.8-2.2 4-4 4h-2.2a1.8 1.8 0 0 0-1.3 3.1A1.8 1.8 0 0 1 12 22z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15.5" cy="7.5" r="1.2"/>',
   sol: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   pin: '<path d="M12 17v5M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V17h14v-1.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
   der: '<path d="m9 18 6-6-6-6"/>', izq: '<path d="m15 18-6-6 6-6"/>', abajo: '<path d="m6 9 6 6 6-6"/>',
@@ -232,6 +233,7 @@ const MENU = [
   { id: 'agenda', t: 'Agenda', i: 'cal' },
   { id: 'cursos', t: 'Cursos: asistencia y notas', i: 'birrete' },
   { id: 'licencias', t: 'Licencias', i: 'maletin' },
+  { id: 'gastos', t: 'Gastos', i: 'peso' },
   { id: 'feriados', t: 'Feriados y días sin clases', i: 'bandera' },
   { id: 'escuelas', t: 'Escuelas y cargos', i: 'edificio' },
   { id: 'config', t: 'Configuración', i: 'conf', p: 'ADMIN' },
@@ -397,7 +399,8 @@ function ayuda() {
     <b>Asistencia:</b> botón <b>Tomar asistencia</b> arriba: abre el curso que tenés ahora. Todos quedan presentes; tocás sólo a los que faltaron
       (<b>A</b> ausente · <b>T</b> tarde · <b>J</b> justificado · <b>R</b> se retiró antes). Ahí mismo anotás el tema de la clase (libro de temas).<br>
     <b>Notas:</b> en cada curso, pestaña Notas: creás la evaluación y escribís las notas. El promedio de cada trimestre lo saca solo. <b>A</b> = ausente.<br>
-    <b>Licencias:</b> cargás el motivo, las fechas y los cargos donde faltás. Te cuenta los días que usaste de cada artículo en el año y cuántos te quedan.<br>
+    <b>Licencias:</b> cargás el motivo, las fechas y los cargos donde faltás.<br>
+    <b>Gastos:</b> anotás lo que gastás (fotocopias, materiales, viajes, cursos, y lo de la casa si querés) y ves cuánto se va por mes y en qué. Te cuenta los días que usaste de cada artículo en el año y cuántos te quedan.<br>
     <b>Feriados:</b> los nacionales están cargados solos, todos los años. Los provinciales, el receso de invierno o un paro los agregás vos.<br>
     <b>Todo queda en este celular</b> y anda sin internet. No hace falta la compu.<br>
     <b>Copia de seguridad:</b> en Configuración tocá <b>Hacer copia ahora</b> una vez por semana y guardala en tu Google Drive (o mandátela por WhatsApp).

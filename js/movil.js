@@ -45,9 +45,9 @@ function imprimir(titulo, cuerpo, apaisado = false) {
   d.innerHTML = `<style id="impEst">
     @page { size: A4 ${apaisado ? 'landscape' : 'portrait'}; margin: 10mm; }
     #impCapa { position: fixed; inset: 0; z-index: 9999; background: #fff; color: #222; overflow: auto; -webkit-overflow-scrolling: touch; }
-    #impCapa .imp-barra { position: sticky; top: 0; display: flex; gap: 8px; align-items: center; padding: 10px 12px; background: #0e7c66; color: #fff; z-index: 2; }
+    #impCapa .imp-barra { position: sticky; top: 0; display: flex; gap: 8px; align-items: center; padding: 10px 12px; background: var(--pri, #0e7c66); color: #fff; z-index: 2; }
     #impCapa .imp-barra b { flex: 1; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #impCapa .imp-barra button { padding: 9px 14px; border: 0; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; background: #fff; color: #0e7c66; }
+    #impCapa .imp-barra button { padding: 9px 14px; border: 0; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; background: #fff; color: var(--pri, #0e7c66); }
     #impCapa .imp-barra button.sec { background: rgba(255,255,255,.18); color: #fff; }
     #impCapa .imp-ayuda { font-size: 12.5px; color: #555; padding: 8px 14px; background: #f3f7f6; border-bottom: 1px solid #dde7e4; }
     #impCapa .imp-hoja { font-family: Arial, sans-serif; color: #222; font-size: 12px; padding: 14px; overflow-x: auto; }
@@ -152,6 +152,43 @@ function tarjetaActivacion(el) {
     toast(DocLic.estado().mensaje); ir('config');
   };
 }
+
+/* ---------- apariencia: color, tipo de letra y tamaño (queda guardada en este celular) */
+const Apariencia = (() => {
+  const K = 'rofac_docente_apariencia';
+  const COLORES = [['verde', 'Verde agua', '#0e7c66', '#06302a'], ['lila', 'Lila', '#8a5cc2', '#3b2457'], ['azul', 'Azul', '#2f6fb5', '#0f2a4a'],
+    ['rosa', 'Rosa', '#d0568a', '#5a1f3d'], ['coral', 'Coral', '#e07048', '#5c2416'], ['grafito', 'Grafito', '#4b5563', '#1e2329']];
+  const LETRAS = [['clasica', 'Clásica', 'system-ui, sans-serif'], ['redondeada', 'Redondeada', 'Poppins, sans-serif'], ['elegante', 'Elegante', 'Lora, Georgia, serif']];
+  const TAMS = [['normal', 'Normal', 15], ['grande', 'Grande', 17], ['muy', 'Muy grande', 19]];
+  const leer = () => { try { return Object.assign({ pal: 'verde', letra: 'clasica', tam: 'normal' }, JSON.parse(localStorage.getItem(K) || '{}')); } catch (e) { return { pal: 'verde', letra: 'clasica', tam: 'normal' }; } };
+  function aplicar(a = leer()) {
+    const h = document.documentElement;
+    if (a.pal === 'verde') delete h.dataset.pal; else h.dataset.pal = a.pal;
+    if (a.letra === 'clasica') delete h.dataset.letra; else h.dataset.letra = a.letra;
+    if (a.tam === 'normal') delete h.dataset.tam; else h.dataset.tam = a.tam;
+    const c = COLORES.find(x => x[0] === a.pal) || COLORES[0], m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.content = a.pal === 'verde' ? '#0e5c50' : c[3];     // color de la barra del celular
+  }
+  function guardar(k, v) { const a = leer(); a[k] = v; try { localStorage.setItem(K, JSON.stringify(a)); } catch (e) { /* */ } aplicar(a); }
+  function tarjeta(el) {
+    const a = leer();
+    el.innerHTML = `<p style="margin-top:0" class="muted">Elegí cómo querés ver la app. Se cambia al instante y queda guardado en este celular.</p>
+      <label>Color</label><div class="ap-fila">${COLORES.map(([k, n, c1, c2]) => `<button type="button" class="ap-color ${a.pal === k ? 'act' : ''}" data-ap="pal" data-v="${k}">
+        <i style="background:linear-gradient(135deg, ${c2}, ${c1})"></i>${n}</button>`).join('')}</div>
+      <label>Tipo de letra</label><div class="ap-fila">${LETRAS.map(([k, n, f]) => `<button type="button" class="ap-op ${a.letra === k ? 'act' : ''}" data-ap="letra" data-v="${k}">
+        <b style="font-family:${f}">${n}</b><small style="font-family:${f}">Lunes 7:30 · 1° A</small></button>`).join('')}</div>
+      <label>Tamaño de letra</label><div class="ap-fila">${TAMS.map(([k, n, px]) => `<button type="button" class="ap-op ${a.tam === k ? 'act' : ''}" data-ap="tam" data-v="${k}">
+        <b style="font-size:${px}px">Aa</b><small>${n}</small></button>`).join('')}</div>
+      <button type="button" class="btn chico" data-ap-reset>Volver a como venía</button>`;
+    el.onclick = e => {
+      const b = e.target.closest('[data-ap]');
+      if (b) { guardar(b.dataset.ap, b.dataset.v); tarjeta(el); return; }
+      if (e.target.closest('[data-ap-reset]')) { try { localStorage.removeItem(K); } catch (x) { /* */ } aplicar(); tarjeta(el); toast('Listo: volvió a como venía'); }
+    };
+  }
+  aplicar();
+  return { aplicar, tarjeta, leer };
+})();
 
 /* ---------- instalar la app */
 let PEDIDO_INSTALAR = null;

@@ -11,7 +11,12 @@
 <meta name="format-detection" content="telephone=no">
 <title>Agenda docente</title>
 <link rel="stylesheet" href="static/estilo.css">
-<script>try { if (localStorage.getItem('tema') === 'dark') document.documentElement.dataset.theme = 'dark'; if (localStorage.getItem('mini') === '1') document.documentElement.classList.add('mini-pre'); } catch (e) {}</script>
+<link rel="stylesheet" href="static/apariencia.css">
+<script>try { if (localStorage.getItem('tema') === 'dark') document.documentElement.dataset.theme = 'dark'; if (localStorage.getItem('mini') === '1') document.documentElement.classList.add('mini-pre');
+  /* apariencia elegida (antes de dibujar, para que no "parpadee" el verde) */
+  const ap = JSON.parse(localStorage.getItem('rofac_docente_apariencia') || '{}'), h = document.documentElement;
+  if (ap.pal && ap.pal !== 'verde') h.dataset.pal = ap.pal; if (ap.letra && ap.letra !== 'clasica') h.dataset.letra = ap.letra; if (ap.tam && ap.tam !== 'normal') h.dataset.tam = ap.tam;
+} catch (e) {}</script>
 </head>
 <body>
 <div id="app">
@@ -57,5 +62,6 @@
 <script src="static/datos.js"></script>
 <script src="static/docente.js"></script>
 <script src="static/cursos.js"></script>
+<script src="static/gastos.js"></script>
 </body>
 </html>

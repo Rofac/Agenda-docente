@@ -526,3 +526,29 @@ table.cuenta td { vertical-align:top; }
 .lic-cg span { flex:1; font-size:13.5px; } .lic-cg small { display:block; color:var(--txt2); font-size:12px; }
 .lic-cg .lic-cod { font-style:normal; font-size:12.5px; color:var(--pri); text-align:right; }
 .lic-cg:has(input:checked) { background:color-mix(in srgb, var(--pri) 8%, var(--card)); border-color:var(--pri); }
+
+/* ---------- observaciones de los alumnos */
+.obs-b { position: relative; border: 1px solid var(--borde); background: var(--card); color: var(--txt2); border-radius: 8px; width: 34px; height: 34px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; margin-right: 6px; }
+.obs-b svg { width: 16px; height: 16px; } .obs-b i { position: absolute; top: -6px; right: -6px; background: var(--txt2); color: #fff; font-style: normal; font-size: 10px;
+  font-weight: 800; border-radius: 9px; padding: 0 5px; line-height: 16px; } .obs-b.pend { border-color: var(--naranja); color: var(--naranja); } .obs-b.pend i { background: var(--naranja); }
+.obs-tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.obs-tipos button { display: flex; align-items: center; gap: 6px; padding: 9px 10px; border: 2px solid var(--borde); border-radius: 10px; background: var(--card); color: var(--txt);
+  font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; } .obs-tipos button span { font-size: 18px; }
+.obs-tipos button.act { border-color: var(--pri); box-shadow: inset 0 0 0 1px var(--pri); }
+.obs-padres { font-weight: 700; padding: 10px 0; }
+.obs-res { font-size: 13px; color: var(--txt2); margin-bottom: 8px; }
+.obs-item { border: 1px solid var(--borde); border-left: 4px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--card); }
+.obs-item.pend { border-left-color: var(--naranja); }
+.obs-cab { display: flex; align-items: center; gap: 8px; } .obs-emo { font-size: 18px; } .obs-txt { margin: 6px 0 2px; line-height: 1.45; white-space: pre-wrap; }
+.obs-pend { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--naranja); } .obs-pend .btn { margin-left: auto; }
+.obs-hab { margin-top: 8px; font-size: 13px; color: var(--verde); }
+.obs-ficha { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; margin-bottom: 12px; border: 1px solid var(--borde);
+  border-radius: 10px; background: var(--card2); }
+.padres-card { border-left: 4px solid var(--naranja); } .padres-card .ev { align-items: center; }
+.obs-actas { border: 1px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; background: var(--card2); }
+.obs-actas > b { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.obs-acta { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--borde); cursor: pointer; font-size: 13.5px; }
+.obs-acta span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acta-al { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 12px; max-height: 190px; overflow: auto; border: 1px solid var(--borde);
+  border-radius: 10px; padding: 8px 10px; }

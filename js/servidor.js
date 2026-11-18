@@ -66,7 +66,26 @@ CREATE TABLE IF NOT EXISTS notas (
     valor TEXT DEFAULT '', PRIMARY KEY (evaluacion_id, alumno_id));
 CREATE TABLE IF NOT EXISTS cierres (
     curso_id INTEGER NOT NULL, alumno_id INTEGER NOT NULL, periodo INTEGER NOT NULL,
-    nota TEXT DEFAULT '', PRIMARY KEY (curso_id, alumno_id, periodo));`;
+    nota TEXT DEFAULT '', PRIMARY KEY (curso_id, alumno_id, periodo));
+CREATE TABLE IF NOT EXISTS observaciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, alumno_id INTEGER NOT NULL REFERENCES alumnos(id), fecha TEXT NOT NULL,
+    tipo TEXT DEFAULT 'OTRA', texto TEXT NOT NULL, padres INTEGER DEFAULT 0, hablado TEXT DEFAULT '', hablado_nota TEXT DEFAULT '', acta_id INTEGER, creado TEXT);
+CREATE INDEX IF NOT EXISTS idx_obs ON observaciones(alumno_id);
+CREATE TABLE IF NOT EXISTS actas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, curso_id INTEGER NOT NULL REFERENCES cursos(id), fecha TEXT NOT NULL, hora TEXT DEFAULT '',
+    encabezado TEXT DEFAULT '', espacio TEXT DEFAULT '', curso_txt TEXT DEFAULT '', profesor TEXT DEFAULT '', situacion TEXT NOT NULL,
+    cierre TEXT DEFAULT '', creado TEXT);
+CREATE TABLE IF NOT EXISTS acta_alumnos (acta_id INTEGER NOT NULL REFERENCES actas(id) ON DELETE CASCADE, alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
+    PRIMARY KEY (acta_id, alumno_id));
+CREATE TABLE IF NOT EXISTS gasto_cats (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT NOT NULL, emoji TEXT DEFAULT '', orden INTEGER DEFAULT 0, activo INTEGER DEFAULT 1);
+CREATE TABLE IF NOT EXISTS gastos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, fecha TEXT NOT NULL, monto REAL NOT NULL, categoria_id INTEGER REFERENCES gasto_cats(id),
+    medio TEXT DEFAULT '', detalle TEXT DEFAULT '', creado TEXT);
+CREATE INDEX IF NOT EXISTS idx_gastos ON gastos(fecha);`;
+  /* gastos (sólo en el celular): categorías con las que arranca; después cada una agrega o borra las suyas */
+  const CATS_GASTO = [['📄', 'Fotocopias e impresiones'], ['✏️', 'Materiales'], ['🚌', 'Transporte / viajes'], ['🎓', 'Cursos y capacitaciones'],
+    ['📚', 'Libros'], ['📱', 'Celular / internet'], ['📦', 'Otros']];
+  const MEDIOS = { EFECTIVO: 'Efectivo', DEBITO: 'Débito', CREDITO: 'Crédito', TRANSFERENCIA: 'Transferencia', MERCADOPAGO: 'Mercado Pago', OTRO: 'Otro' };
   const MIGRACIONES = {
     articulos: [['articulo', "TEXT DEFAULT ''"], ['situacion', "TEXT DEFAULT ''"], ['tope_tipo', "TEXT DEFAULT ''"], ['tope_texto', "TEXT DEFAULT ''"]],
     licencias: [['grupo', "TEXT DEFAULT ''"]],
@@ -263,6 +282,10 @@ CREATE TABLE IF NOT EXISTS cierres (
           [mot, cod, art, sit, dias, tt, tx, 'CORRIDOS', cert, orden]);
       }
       setCfg('nomenclador_cargado', '1');
+    }
+    if (!q1("SELECT 1 FROM config WHERE clave = 'gastos_cats_cargadas'")) {
+      if (!q1('SELECT 1 FROM gasto_cats')) CATS_GASTO.forEach(([e, n], i) => run('INSERT INTO gasto_cats(nombre, emoji, orden) VALUES (?,?,?)', [n, e, i + 1]));
+      setCfg('gastos_cats_cargadas', '1');
     }
   }
   async function abrir() {
@@ -732,7 +755,8 @@ CREATE TABLE IF NOT EXISTS cierres (
   });
   ruta('DELETE', '/api/alumnos/<int>', (d, aid) => {
     aid = +aid;
-    if (q1("SELECT 1 FROM asistencia WHERE alumno_id = ? UNION SELECT 1 FROM notas WHERE alumno_id = ? AND valor != ''", [aid, aid])) E('Ya tiene asistencia o notas cargadas: no se borra, se le da de baja');
+    if (q1("SELECT 1 FROM asistencia WHERE alumno_id = ? UNION SELECT 1 FROM notas WHERE alumno_id = ? AND valor != '' UNION SELECT 1 FROM observaciones WHERE alumno_id = ?", [aid, aid, aid]))
+      E('Ya tiene asistencia, notas u observaciones cargadas: no se borra, se le da de baja');
     run('DELETE FROM cierres WHERE alumno_id = ?', [aid]); run('DELETE FROM alumnos WHERE id = ?', [aid]);
     return { ok: true };
   });
@@ -740,7 +764,8 @@ CREATE TABLE IF NOT EXISTS cierres (
     aid = +aid;
     if (strip(d.confirmar).toUpperCase() !== 'BORRAR') E('Para confirmar escribí BORRAR');
     const a = q1('SELECT * FROM alumnos WHERE id = ?', [aid]); if (!a) throw Object.assign(new ErrorNegocio('No existe ese alumno'), { status: 404 });
-    for (const t of ['asistencia', 'notas', 'cierres']) run(`DELETE FROM ${t} WHERE alumno_id = ?`, [aid]);
+    for (const t of ['asistencia', 'notas', 'cierres', 'observaciones', 'acta_alumnos']) run(`DELETE FROM ${t} WHERE alumno_id = ?`, [aid]);
+    run('DELETE FROM actas WHERE id NOT IN (SELECT acta_id FROM acta_alumnos)');     // un acta que era sólo de este alumno
     run('DELETE FROM alumnos WHERE id = ?', [aid]);
     // también se saca su nombre del registro de actividad (si la base vino de la PC)
     const textos = [...new Set([`${a.apellido} ${a.nombre || ''}`.trim(), a.apellido, a.dni, a.tutor, a.telefono].map(x => strip(x)).filter(x => x.length >= 3))].sort((x, y) => y.length - x.length);
@@ -751,12 +776,97 @@ CREATE TABLE IF NOT EXISTS cierres (
     return { ok: true };
   });
 
+  /* observaciones de cada alumno */
+  const TIPOS_OBS = ['CONDUCTA', 'BUENA', 'TAREA', 'OTRA'];
+  const obsCuenta = cid => Object.fromEntries(q("SELECT o.alumno_id, COUNT(*) AS n, SUM(CASE WHEN o.padres = 1 AND o.hablado = '' THEN 1 ELSE 0 END) AS pend FROM observaciones o " +
+    'JOIN alumnos a ON a.id = o.alumno_id WHERE a.curso_id = ? GROUP BY o.alumno_id', [cid]).map(r => [r.alumno_id, { n: r.n, pend: r.pend }]));
+  const padresPendientes = () => q('SELECT o.id, o.fecha, o.tipo, o.texto, o.alumno_id, a.apellido, a.nombre, a.tutor, a.telefono, a.curso_id, c.anio, c.division, c.materia, ' +
+    "e.nombre AS escuela FROM observaciones o JOIN alumnos a ON a.id = o.alumno_id JOIN cursos c ON c.id = a.curso_id JOIN escuelas e ON e.id = c.escuela_id " +
+    "WHERE o.padres = 1 AND o.hablado = '' AND a.activo = 1 ORDER BY o.fecha, o.id");
+  ruta('GET', '/api/alumnos/<int>/observaciones', (d, aid) => {
+    const a = q1('SELECT * FROM alumnos WHERE id = ?', [+aid]); if (!a) E('El alumno no existe');
+    return { alumno: a, curso: curso(a.curso_id), observaciones: q('SELECT * FROM observaciones WHERE alumno_id = ? ORDER BY fecha DESC, id DESC', [+aid]),
+      actas: q('SELECT t.id, t.fecha, t.hora, t.situacion, (SELECT COUNT(*) FROM acta_alumnos y WHERE y.acta_id = t.id) AS n_alumnos ' +
+        'FROM actas t JOIN acta_alumnos x ON x.acta_id = t.id WHERE x.alumno_id = ? ORDER BY t.fecha DESC, t.id DESC', [+aid]) };
+  });
+  ruta('POST', '/api/observaciones', d => {
+    const texto = strip(d.texto).slice(0, 1000); if (!texto) E('Escribí la observación (ej. Se portó mal en clase)');
+    const fecha = fechaOk(d.fecha || hoy()); if (fecha > hoy()) E('La fecha no puede ser de un día que todavía no llegó');
+    const tipo = String(d.tipo || 'OTRA').toUpperCase(); if (!TIPOS_OBS.includes(tipo)) E('Tipo de observación inválido');
+    const padres = [1, true, '1'].includes(d.padres) ? 1 : 0;
+    if (d.id) {
+      const o = q1('SELECT * FROM observaciones WHERE id = ?', [ent(d.id)]); if (!o) E('Esa observación ya no existe');
+      run('UPDATE observaciones SET fecha=?, tipo=?, texto=?, padres=?, hablado=?, hablado_nota=? WHERE id=?', [fecha, tipo, texto, padres, padres ? o.hablado : '', padres ? o.hablado_nota : '', o.id]);
+      return { ok: true, id: o.id };
+    }
+    if (!q1('SELECT 1 FROM alumnos WHERE id = ?', [ent(d.alumno_id)])) E('El alumno no existe');
+    return { ok: true, id: run('INSERT INTO observaciones(alumno_id, fecha, tipo, texto, padres, creado) VALUES (?,?,?,?,?,?)', [ent(d.alumno_id), fecha, tipo, texto, padres, ahora()]) };
+  });
+  ruta('POST', '/api/observaciones/<int>/hablado', (d, oid) => {
+    if (!q1('SELECT 1 FROM observaciones WHERE id = ? AND padres = 1', [+oid])) E('Esa observación no tiene "hablar con los padres"');
+    if (d.deshacer) run("UPDATE observaciones SET hablado = '', hablado_nota = '' WHERE id = ?", [+oid]);
+    else {
+      const f = fechaOk(d.fecha || hoy()); if (f > hoy()) E('La fecha no puede ser de un día que todavía no llegó');
+      run('UPDATE observaciones SET hablado = ?, hablado_nota = ? WHERE id = ?', [f, strip(d.nota).slice(0, 500), +oid]);
+    }
+    return { ok: true };
+  });
+  /* actas de conducta (modelo de la escuela, para imprimir y firmar) */
+  function actaEncabezado(cfg, e) {
+    const guardado = cfg['acta_enc_' + e.id] || ''; if (guardado) return guardado;
+    let prov = cfg.provincia || 'Chaco'; prov = prov.toLowerCase() === 'chaco' ? 'del Chaco' : 'de ' + prov;
+    const nom = e.nombre + (e.numero && !e.nombre.includes(e.numero) ? ' N° ' + e.numero : '');
+    return `En ${e.localidad || '...........................'}, de la Provincia ${prov}, en el Establecimiento ${nom}${e.direccion ? ', ubicado en ' + e.direccion : ''}.`;
+  }
+  const actaCierre = ciclo => `Se presenta a Dirección del Establecimiento, con el fin que se proceda de acuerdo a las Normas de Convivencia Institucional en vigencia ciclo lectivo ${ciclo}.`;
+  ruta('GET', '/api/actas/nueva', (d, a) => {
+    const cfg = getConfig(); let o = null;
+    if (a.get('observacion_id')) { o = q1('SELECT * FROM observaciones WHERE id = ?', [ent(a.get('observacion_id'))]); if (!o) E('Esa observación ya no existe'); }
+    const aid = o ? o.alumno_id : ent(a.get('alumno_id')), al = q1('SELECT * FROM alumnos WHERE id = ?', [aid]); if (!al) E('El alumno no existe');
+    const c = curso(al.curso_id), e = q1('SELECT * FROM escuelas WHERE id = ?', [c.escuela_id]), fecha = o ? o.fecha : hoy();
+    return { curso_id: c.id, fecha, hora: fecha === hoy() ? new Date().toTimeString().slice(0, 5) : '', encabezado: actaEncabezado(cfg, e), espacio: c.materia || '',
+      curso_txt: `${c.anio || ''} ${c.division || ''}`.trim(), profesor: cfg.nombre_consultorio || '', situacion: o ? o.texto : '', cierre: actaCierre(c.ciclo),
+      alumnos: [aid], observacion_id: o ? o.id : null, escuela: e.nombre, lista: alumnosDe(c.id) };
+  });
+  function acta(acid) {
+    const t = q1('SELECT * FROM actas WHERE id = ?', [acid]); if (!t) E('Esa acta ya no existe');
+    t.alumnos_det = q('SELECT a.id, a.apellido, a.nombre, a.tutor FROM acta_alumnos x JOIN alumnos a ON a.id = x.alumno_id WHERE x.acta_id = ? ORDER BY a.apellido, a.nombre', [acid]);
+    t.alumnos = t.alumnos_det.map(x => x.id);
+    const c = curso(t.curso_id); t.escuela = c.escuela; t.lista = alumnosDe(c.id, true);
+    return t;
+  }
+  ruta('GET', '/api/actas/<int>', (d, acid) => acta(+acid));
+  ruta('POST', '/api/actas', d => {
+    const situacion = strip(d.situacion).slice(0, 4000); if (!situacion) E('Escribí qué pasó (la situación)');
+    const fecha = fechaOk(d.fecha || hoy()); if (fecha > hoy()) E('La fecha no puede ser de un día que todavía no llegó');
+    const hr = hora(d.hora), c = curso(ent(d.curso_id)), validos = new Set(alumnosDe(c.id, true).map(x => x.id)), ids = [];
+    for (const x of d.alumnos || []) if (/^\d+$/.test(String(x).trim()) && validos.has(+x) && !ids.includes(+x)) ids.push(+x);
+    if (!ids.length) E('Marcá al menos un alumno involucrado');
+    const par = [fecha, hr, strip(d.encabezado).slice(0, 800), txt(d.espacio, 120), txt(d.curso_txt, 60), txt(d.profesor, 120), situacion, strip(d.cierre).slice(0, 800)];
+    let acid;
+    if (d.id) { acid = ent(d.id); acta(acid); run('UPDATE actas SET fecha=?, hora=?, encabezado=?, espacio=?, curso_txt=?, profesor=?, situacion=?, cierre=? WHERE id=?', [...par, acid]); run('DELETE FROM acta_alumnos WHERE acta_id = ?', [acid]); }
+    else acid = run('INSERT INTO actas(fecha, hora, encabezado, espacio, curso_txt, profesor, situacion, cierre, curso_id, creado) VALUES (?,?,?,?,?,?,?,?,?,?)', [...par, c.id, ahora()]);
+    for (const aid of ids) run('INSERT INTO acta_alumnos(acta_id, alumno_id) VALUES (?,?)', [acid, aid]);
+    run(`UPDATE observaciones SET acta_id = NULL WHERE acta_id = ? AND alumno_id NOT IN (${ids.join(',')})`, [acid]);
+    const oid = ent(d.observacion_id);
+    if (oid) run('UPDATE observaciones SET acta_id = ? WHERE id = ? AND acta_id IS NULL', [acid, oid]);
+    for (const aid of ids) if (!q1('SELECT 1 FROM observaciones WHERE alumno_id = ? AND acta_id = ?', [aid, acid]))
+      run('INSERT INTO observaciones(alumno_id, fecha, tipo, texto, acta_id, creado) VALUES (?,?,?,?,?,?)', [aid, fecha, 'CONDUCTA', 'Acta de conducta: ' + situacion.slice(0, 900), acid, ahora()]);
+    if (par[2]) setCfg('acta_enc_' + c.escuela_id, par[2]);
+    return { ok: true, id: acid };
+  });
+  ruta('DELETE', '/api/actas/<int>', (d, acid) => {
+    run('UPDATE observaciones SET acta_id = NULL WHERE acta_id = ?', [+acid]); run('DELETE FROM acta_alumnos WHERE acta_id = ?', [+acid]); run('DELETE FROM actas WHERE id = ?', [+acid]);
+    return { ok: true };
+  });
+  ruta('DELETE', '/api/observaciones/<int>', (d, oid) => { run('DELETE FROM observaciones WHERE id = ?', [+oid]); return { ok: true }; });
+
   /* asistencia y libro de temas */
   ruta('GET', '/api/cursos/<int>', (d, cid) => {
     cid = +cid; const cfg = getConfig(), c = curso(cid);
     c.alumnos = alumnosDe(cid, true);
-    const asis = asistenciaAlumnos(cfg, cid);
-    for (const a of c.alumnos) a.asis = asis[a.id] || null;
+    const asis = asistenciaAlumnos(cfg, cid), obs = obsCuenta(cid);
+    for (const a of c.alumnos) { a.asis = asis[a.id] || null; a.obs = obs[a.id] || { n: 0, pend: 0 }; }
     c.clases_dictadas = val('SELECT COUNT(*) FROM clases WHERE curso_id = ? AND hubo = 1', [cid]);
     c.ultima_clase = val('SELECT MAX(fecha) FROM clases WHERE curso_id = ?', [cid]) || '';
     c.horarios = q('SELECT * FROM horarios WHERE curso_id = ? ORDER BY dia, desde', [cid]);
@@ -767,7 +877,8 @@ CREATE TABLE IF NOT EXISTS cierres (
     const k = q1('SELECT * FROM clases WHERE curso_id = ? AND fecha = ?', [cid, fecha]);
     const est = {}; for (const r of q('SELECT * FROM asistencia WHERE clase_id = ?', [k ? k.id : 0])) est[r.alumno_id] = r.estado;
     const alumnos = alumnosDe(cid, true).filter(x => x.activo || x.id in est);
-    for (const x of alumnos) x.estado = est[x.id] || '';
+    const obs = obsCuenta(cid);
+    for (const x of alumnos) { x.estado = est[x.id] || ''; x.obs = obs[x.id] || { n: 0, pend: 0 }; }
     const esp = diasEspeciales(fecha, fecha);
     const anterior = q1('SELECT fecha, tema FROM clases WHERE curso_id = ? AND fecha < ? AND hubo = 1 ORDER BY fecha DESC LIMIT 1', [cid, fecha]);
     return { curso: c, fecha, clase: k, alumnos, aviso: sinClases(esp, fecha, c.escuela_id), anterior };
@@ -878,6 +989,51 @@ CREATE TABLE IF NOT EXISTS cierres (
     return { ok: true };
   });
 
+  /* gastos */
+  const mesOk = v => { const m = String(v || hoy().slice(0, 7)).slice(0, 7); fechaOk(m + '-01', 'mes'); return m; };
+  const mesMas = (m, n) => { const d = new Date(+m.slice(0, 4), +m.slice(5, 7) - 1 + n, 1, 12); return iso(d).slice(0, 7); };
+  ruta('GET', '/api/gastos/categorias', () => q('SELECT c.*, (SELECT COUNT(*) FROM gastos g WHERE g.categoria_id = c.id) AS usos FROM gasto_cats c WHERE c.activo = 1 ORDER BY c.orden, c.id'));
+  ruta('POST', '/api/gastos/categorias', d => {
+    const nombre = txt(d.nombre, 40); if (!nombre) E('Escribí el nombre de la categoría (ej. Supermercado)');
+    const emoji = String(d.emoji || '').trim().slice(0, 8);
+    const otra = q1('SELECT id FROM gasto_cats WHERE activo = 1 AND lower(nombre) = lower(?) AND id != ?', [nombre, ent(d.id)]);
+    if (otra) E('Ya tenés una categoría con ese nombre');
+    if (d.id) { run('UPDATE gasto_cats SET nombre = ?, emoji = ? WHERE id = ?', [nombre, emoji, ent(d.id)]); return { ok: true, id: ent(d.id) }; }
+    return { ok: true, id: run('INSERT INTO gasto_cats(nombre, emoji, orden) VALUES (?,?,?)', [nombre, emoji, (val('SELECT MAX(orden) FROM gasto_cats') || 0) + 1]) };
+  });
+  ruta('DELETE', '/api/gastos/categorias/<int>', (d, id) => {
+    id = +id;
+    if (q1('SELECT 1 FROM gastos WHERE categoria_id = ?', [id])) run('UPDATE gasto_cats SET activo = 0 WHERE id = ?', [id]);   // los gastos viejos la siguen mostrando
+    else run('DELETE FROM gasto_cats WHERE id = ?', [id]);
+    return { ok: true };
+  });
+  ruta('GET', '/api/gastos', (d, a) => {
+    const mes = mesOk(a.get('mes')), ant = mesMas(mes, -1), anio = mes.slice(0, 4);
+    const lista = q("SELECT g.*, c.nombre AS categoria, c.emoji FROM gastos g LEFT JOIN gasto_cats c ON c.id = g.categoria_id WHERE substr(g.fecha, 1, 7) = ? ORDER BY g.fecha DESC, g.id DESC", [mes]);
+    for (const g of lista) g.medio_txt = MEDIOS[g.medio] || g.medio || '';
+    const total = r2(sum(lista, g => g.monto)), anterior = r2(val("SELECT COALESCE(SUM(monto), 0) FROM gastos WHERE substr(fecha, 1, 7) = ?", [ant]));
+    const porCat = q("SELECT c.id, COALESCE(c.nombre, 'Sin categoría') AS nombre, COALESCE(c.emoji, '') AS emoji, SUM(g.monto) AS total, COUNT(*) AS n FROM gastos g " +
+      "LEFT JOIN gasto_cats c ON c.id = g.categoria_id WHERE substr(g.fecha, 1, 7) = ? GROUP BY g.categoria_id ORDER BY total DESC", [mes]);
+    for (const c of porCat) { c.total = r2(c.total); c.pct = total ? r2(100 * c.total / total) : 0; }
+    const porMedio = q("SELECT medio, SUM(monto) AS total, COUNT(*) AS n FROM gastos WHERE substr(fecha, 1, 7) = ? GROUP BY medio ORDER BY total DESC", [mes])
+      .map(x => ({ medio: x.medio, nombre: MEDIOS[x.medio] || x.medio || 'Sin indicar', total: r2(x.total), n: x.n }));
+    const meses = {}; for (const r of q("SELECT substr(fecha, 1, 7) AS m, SUM(monto) AS t FROM gastos WHERE substr(fecha, 1, 4) = ? GROUP BY m", [anio])) meses[r.m] = r2(r.t);
+    const porMes = Array.from({ length: 12 }, (_, i) => { const m = `${anio}-${String(i + 1).padStart(2, '0')}`; return { mes: m, total: meses[m] || 0 }; });
+    return { mes, gastos: lista, total, anterior, variacion: anterior ? r2(100 * (total - anterior) / anterior) : null, por_categoria: porCat, por_medio: porMedio,
+      por_mes: porMes, total_anio: r2(sum(porMes, x => x.total)), medios: MEDIOS };
+  });
+  ruta('POST', '/api/gastos', d => {
+    const monto = r2(num(d.monto)); if (!(monto > 0)) E('Escribí cuánto gastaste');
+    if (monto > 1e10) E('El importe es demasiado grande: revisalo');
+    const fecha = fechaOk(d.fecha || hoy()); if (fecha > hoy()) E('La fecha no puede ser de un día que todavía no llegó');
+    const cat = ent(d.categoria_id); if (!q1('SELECT 1 FROM gasto_cats WHERE id = ?', [cat])) E('Elegí la categoría');
+    const medio = String(d.medio || 'EFECTIVO').toUpperCase(); if (!(medio in MEDIOS)) E('Medio de pago inválido');
+    const par = [fecha, monto, cat, medio, txt(d.detalle, 120)];
+    if (d.id) { if (!q1('SELECT 1 FROM gastos WHERE id = ?', [ent(d.id)])) E('Ese gasto ya no existe'); run('UPDATE gastos SET fecha=?, monto=?, categoria_id=?, medio=?, detalle=? WHERE id=?', [...par, ent(d.id)]); return { ok: true, id: ent(d.id) }; }
+    return { ok: true, id: run('INSERT INTO gastos(fecha, monto, categoria_id, medio, detalle, creado) VALUES (?,?,?,?,?,?)', [...par, ahora()]) };
+  });
+  ruta('DELETE', '/api/gastos/<int>', (d, id) => { run('DELETE FROM gastos WHERE id = ?', [+id]); return { ok: true }; });
+
   /* inicio y avisos */
   ruta('GET', '/api/inicio', () => {
     const cfg = getConfig(), h = hoy(), anio = +h.slice(0, 4);
@@ -899,6 +1055,7 @@ CREATE TABLE IF NOT EXISTS cierres (
       }
     }
     out.riesgo = riesgo.sort((a, b) => a.porcentaje - b.porcentaje).slice(0, 30);
+    out.padres = padresPendientes(); for (const p of out.padres) p.curso = nombreCurso(p);
     out.tiene_escuelas = !!q1('SELECT 1 FROM escuelas WHERE activo = 1');
     out.tiene_horario = !!q1('SELECT 1 FROM horarios');
     return out;
@@ -910,6 +1067,8 @@ CREATE TABLE IF NOT EXISTS cierres (
     const sc = val("SELECT COUNT(DISTINCT COALESCE(l.grupo, l.id)) FROM licencias l JOIN articulos a ON a.id = l.articulo_id WHERE a.certificado = 1 AND l.certificado = 0 AND l.estado != 'RECHAZADA' AND l.desde >= ?", [anio + '-01-01']);
     if (sc) out.push({ ico: 'alerta', texto: `${sc} licencia${sc === 1 ? '' : 's'} sin presentar el certificado`, ir: 'licencias' });
     for (const c of contador(anio)) if (c.excedido) out.push({ ico: 'alerta', texto: 'Pasaste el tope de días de ' + (c.codigo || c.descripcion), ir: 'licencias' });
+    const pp = new Set(padresPendientes().map(p => p.alumno_id)).size;
+    if (pp) out.push({ ico: 'users', texto: `Hablar con los padres de ${pp} alumno${pp === 1 ? '' : 's'}`, ir: 'principal' });
     return out;
   });
 

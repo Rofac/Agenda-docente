@@ -19,12 +19,13 @@ P.config = async (main) => {
       ${si('cuenta_justificadas', 'Las inasistencias justificadas también cuentan como inasistencia')}</div></div>
     <div class="card"><h3>${ico('llave')} Activación de la app</h3><div id="cfLic"></div></div>
     <div class="card"><h3>${ico('db')} Copia de seguridad</h3><div id="cfCopia"></div></div>
+    <div class="card"><h3>${ico('paleta')} Apariencia</h3><div id="cfAp"></div></div>
     <div class="card"><h3>${ico('bajar')} Instalar en el celular</h3><div id="cfApp"></div></div>
     <div class="card"><h3>${ico('info')} Acerca de</h3><div class="acerca"><div class="acerca-logo">${esc(window.MARCA || 'RoFac')}</div>
       <div><b style="font-size:16px">Agenda Docente · ${esc(window.MARCA || 'RoFac')}</b><div class="muted">Versión ${esc(window.VERSION || '')} para celular</div>
         <button class="btn chico" type="button" style="margin-top:10px" onclick="Legal.ver()">Términos y privacidad</button></div></div></div></div>`;
   if (L.bloqueado || L.por_vencer) $('#cfForm').prepend($('#cfLic').closest('.card'));     // si hay que activar, va primero
-  tarjetaActivacion($('#cfLic')); tarjetaCopia($('#cfCopia')); tarjetaApp($('#cfApp'));
+  tarjetaActivacion($('#cfLic')); tarjetaCopia($('#cfCopia')); tarjetaApp($('#cfApp')); Apariencia.tarjeta($('#cfAp'));
   if (L.bloqueado) $$('#cfForm input, #cfForm select, #cfForm textarea').forEach(i => { if (i.name && i.name !== 'nombre_consultorio' && i.closest('#cfForm > .card:nth-child(-n+3)')) i.disabled = true; });
   $('#cfOk').onclick = async () => {
     const d = leer($('#cfForm'));

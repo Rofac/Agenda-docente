@@ -1,6 +1,6 @@
 /* Guarda la app en el celular para que abra sin internet.
    Al cambiar VERSION, el celular baja la versión nueva la próxima vez que abre la app con internet. */
-const VERSION = 'doc-1.2.0';
+const VERSION = 'doc-1.2.1';
 const ARCHIVOS = ['./', 'index.html', 'manifest.webmanifest', 'static/estilo.css', 'static/apariencia.css', 'fonts/Poppins-Regular.woff', 'fonts/Poppins-Medium.woff', 'fonts/Poppins-Bold.woff', 'fonts/Lora-Variable.woff', 'static/legal.js', 'static/app.js', 'static/datos.js', 'static/docente.js', 'static/cursos.js', 'static/gastos.js',
   'js/zip.js', 'js/legal_txt.js', 'js/lic.js', 'js/servidor.js', 'js/movil.js', 'lib/sql-wasm.js', 'lib/sql-wasm.wasm',
   'img/favicon.png', 'img/icono-180.png', 'img/icono-192.png', 'img/icono-512.png', 'img/icono-maskable.png'];

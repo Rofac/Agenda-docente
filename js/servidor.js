@@ -815,9 +815,10 @@ CREATE INDEX IF NOT EXISTS idx_gastos ON gastos(fecha);`;
   function actaEncabezado(cfg, e) {
     const guardado = cfg['acta_enc_' + e.id] || ''; if (guardado) return guardado;
     let prov = cfg.provincia || 'Chaco'; prov = prov.toLowerCase() === 'chaco' ? 'del Chaco' : 'de ' + prov;
-    const nom = e.nombre + (e.numero && !e.nombre.includes(e.numero) ? ' N° ' + e.numero : '');
+    const nom = escuelaCompleta(e);
     return `En ${e.localidad || '...........................'}, de la Provincia ${prov}, en el Establecimiento ${nom}${e.direccion ? ', ubicado en ' + e.direccion : ''}.`;
   }
+  const escuelaCompleta = e => e.nombre + (e.numero && !e.nombre.includes(e.numero) ? ' N° ' + e.numero : '');   // "EGB" + "352" -> "EGB N° 352"
   const actaCierre = ciclo => `Se presenta a Dirección del Establecimiento, con el fin que se proceda de acuerdo a las Normas de Convivencia Institucional en vigencia ciclo lectivo ${ciclo}.`;
   ruta('GET', '/api/actas/nueva', (d, a) => {
     const cfg = getConfig(); let o = null;
@@ -826,13 +827,13 @@ CREATE INDEX IF NOT EXISTS idx_gastos ON gastos(fecha);`;
     const c = curso(al.curso_id), e = q1('SELECT * FROM escuelas WHERE id = ?', [c.escuela_id]), fecha = o ? o.fecha : hoy();
     return { curso_id: c.id, fecha, hora: fecha === hoy() ? new Date().toTimeString().slice(0, 5) : '', encabezado: actaEncabezado(cfg, e), espacio: c.materia || '',
       curso_txt: `${c.anio || ''} ${c.division || ''}`.trim(), profesor: cfg.nombre_consultorio || '', situacion: o ? o.texto : '', cierre: actaCierre(c.ciclo),
-      alumnos: [aid], observacion_id: o ? o.id : null, escuela: e.nombre, lista: alumnosDe(c.id) };
+      alumnos: [aid], observacion_id: o ? o.id : null, escuela: escuelaCompleta(e), lista: alumnosDe(c.id) };
   });
   function acta(acid) {
     const t = q1('SELECT * FROM actas WHERE id = ?', [acid]); if (!t) E('Esa acta ya no existe');
     t.alumnos_det = q('SELECT a.id, a.apellido, a.nombre, a.tutor FROM acta_alumnos x JOIN alumnos a ON a.id = x.alumno_id WHERE x.acta_id = ? ORDER BY a.apellido, a.nombre', [acid]);
     t.alumnos = t.alumnos_det.map(x => x.id);
-    const c = curso(t.curso_id); t.escuela = c.escuela; t.lista = alumnosDe(c.id, true);
+    const c = curso(t.curso_id); t.escuela = escuelaCompleta(q1('SELECT * FROM escuelas WHERE id = ?', [c.escuela_id])); t.lista = alumnosDe(c.id, true);
     return t;
   }
   ruta('GET', '/api/actas/<int>', (d, acid) => acta(+acid));

@@ -1,0 +1,56 @@
+AGENDA DOCENTE · App para el celular (RoFac v1.0)
+=================================================
+
+Es el mismo programa de la PC (Hoy, Mi horario, Agenda, Cursos con asistencia / notas / libro de temas,
+Licencias con el nomenclador, Feriados, Escuelas y cargos), pero como app del celular:
+anda SIN la compu y SIN internet. Los datos quedan sólo en el celular de la docente.
+Usa la misma base que la PC: una copia de la PC se abre en el celular y al revés.
+
+PRUEBA Y ACTIVACIÓN (para venderla)
+- Los primeros 30 días anda completa y gratis. Arriba dice "Prueba gratis: quedan N días".
+- Después, sin activar, queda en SÓLO LECTURA: ve todo y puede hacer copias, pero no carga nada nuevo.
+  Los datos nunca se borran.
+- Para activar: la docente entra a Configuración > "Activación de la app" y te manda el código del celular
+  (botón "Mandar por WhatsApp", ej. D3A1-4AB6-7B27).
+- Vos abrís generar_licencia_apps.py > opción 8 "Agenda Docente (celular)" > pegás el código >
+  Enter = un año (o una fecha, o PERM). Le mandás la clave (empieza con DCM-) y la pega en "Clave que te pasó Rodrigo" > Activar.
+- La clave sirve SÓLO en ese celular. Si cambia de celular, le hacés una nueva para el código nuevo.
+- Aviso 15 días antes de que venza.
+- Si borra los datos de Chrome o desinstala la app, la prueba no vuelve a empezar de cero mientras quede algo guardado.
+  Pero en el celular eso no es 100% seguro como en Windows: si borra todo, podría empezar otra prueba (y pierde los datos).
+
+CÓMO PUBLICARLA (igual que Pagos, Wolves y Aguas Santa María)
+1. GitHub (Rofac) > "+" > New repository > nombre: AgendaDocente (Public) > Create.
+2. Add file > Upload files: index.html, sw.js, manifest.webmanifest, LEEME.txt > Commit changes.
+3. Subir las carpetas de a una: static, js, lib, img > Commit changes cada vez.
+4. Settings > Pages > Branch "main" y "/ (root)" > Save. Esperar 1 o 2 minutos.
+   Queda en: https://rofac.github.io/AgendaDocente/
+OJO: el repositorio es público pero NO tiene datos de nadie: los datos quedan sólo en el celular de cada docente.
+Que sea público no regala la app: sin la clave, a los 30 días queda en sólo lectura.
+
+EN EL CELULAR DE LA DOCENTE
+1. Abrir la dirección en Chrome > aceptar los términos de uso > menú ⋮ > "Instalar app"
+   (o "Agregar a la pantalla principal"). En iPhone: Safari > Compartir > "Agregar a pantalla de inicio",
+   y usarla siempre desde el ícono.
+2. Configuración: nombre, ciclo lectivo y trimestres. Después Escuelas y cargos, Cursos (pegar la lista de alumnos)
+   y Mi horario. Igual que en la PC.
+3. Si ya usaba la Agenda en la PC: en la PC, Configuración > Respaldo > "Descargar copia completa" (.zip) >
+   mandárselo por WhatsApp o Drive > en el celular, Configuración > "Traer datos de la PC / restaurar una copia".
+
+COPIA DE SEGURIDAD (MUY IMPORTANTE)
+Todo queda en el celular. Si se rompe o se pierde sin copia, se pierde todo.
+Configuración > "Hacer copia ahora" (una vez por semana) > guardarla en Google Drive o mandársela por WhatsApp.
+Si pasa más de una semana sin copia, la app avisa en la pantalla "Hoy".
+Además guarda sola una copia por día adentro del celular (las últimas 7), por si borra algo sin querer.
+
+IMPRIMIR / PDF
+Horario, licencias, lista de alumnos, notas, libro de temas y asistencia: se abre la hoja adentro de la app >
+"Imprimir / PDF" > en "Impresora" elegir "Guardar como PDF". Después se puede mandar por WhatsApp.
+
+DIFERENCIAS CON LA PC
+- No hay usuarios ni contraseña (el celular es personal). Conviene usarlo con bloqueo de pantalla.
+- No hace falta WiFi ni la compu prendida.
+
+ACTUALIZAR
+Reemplazar en GitHub los archivos que cambien y subir el número de VERSION en sw.js (ej. doc-1.0.1).
+El celular toma la versión nueva la próxima vez que abre la app con internet. Los datos no se tocan.

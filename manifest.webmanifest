@@ -1,0 +1,16 @@
+{
+  "name": "Agenda Docente",
+  "short_name": "Agenda Docente",
+  "description": "Horario, asistencia, notas, libro de temas y licencias (RoFac)",
+  "start_url": "./#principal",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0e5c50",
+  "theme_color": "#0e5c50",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "img/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "img/icono-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
